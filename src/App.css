@@ -545,6 +545,35 @@ code.digest {
 .modal-footer button:hover:not(:disabled) { background: #0b5ed7; }
 .modal-footer button:disabled { background: #aaa; cursor: not-allowed; }
 
+/* Output path field */
+.output-field-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.output-field-row input { flex: 1; }
+
+.browse-btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.output-path-editor {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.output-path-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #444;
+}
+
 /* S3 browser — disallowed paths */
 .row-disallowed {
   opacity: 0.55;

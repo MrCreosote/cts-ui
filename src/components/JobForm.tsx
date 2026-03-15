@@ -7,6 +7,7 @@ import { CommandLineInput, parseCliArguments } from './CommandLineInput';
 import { ResourceInputs, toISODuration } from './ResourceInputs';
 import type { Resources } from './ResourceInputs';
 import { submitJob, fetchWhoami } from '../api/cts';
+import { S3OutputPicker, isOutputPathAllowed } from './S3OutputPicker';
 import { checkObjectChecksum } from '../api/s3proxy';
 
 interface Props {
@@ -188,12 +189,26 @@ export function JobForm({ credentials }: Props) {
       {/* Output */}
       <div className="field">
         <label>Output Directory (S3 path)</label>
-        <input
-          type="text"
-          value={outputDir}
-          onChange={e => setOutputDir(e.target.value)}
-          placeholder="e.g. my-bucket/results/run-001"
-        />
+        <div className="output-field-row">
+          <input
+            type="text"
+            value={outputDir}
+            onChange={e => setOutputDir(e.target.value)}
+            placeholder="e.g. my-bucket/results/run-001"
+          />
+          <S3OutputPicker
+            proxyUrl={credentials.proxyUrl}
+            s3Endpoint={credentials.s3Endpoint}
+            accessKey={credentials.s3AccessKey}
+            secretKey={credentials.s3SecretKey}
+            allowedPaths={allowedPaths}
+            value={outputDir}
+            onChange={setOutputDir}
+          />
+        </div>
+        {outputDir && allowedPaths !== null && !isOutputPathAllowed(outputDir, allowedPaths) && (
+          <p className="error">This path is outside your allowed write paths.</p>
+        )}
       </div>
 
       {/* Mount Points */}
