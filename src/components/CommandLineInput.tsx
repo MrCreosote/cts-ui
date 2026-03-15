@@ -32,9 +32,7 @@ export function CommandLineInput({ value, onChange, entrypoint, inputMountPoint,
     });
   }
 
-  const segments = value.split(PLACEHOLDER);
-  const hasPlaceholder = segments.length > 1;
-  const multipleOccurrences = segments.length > 2;
+  const multipleOccurrences = value.split(PLACEHOLDER).length > 2;
 
   return (
     <div className="field">
@@ -63,23 +61,6 @@ export function CommandLineInput({ value, onChange, entrypoint, inputMountPoint,
         Insert files at cursor
       </button>
 
-      {value && (
-        <div className="cli-preview" aria-label="Command preview">
-          {segments.map((seg, i) => (
-            <span key={i}>
-              <span className="cli-literal">{seg}</span>
-              {i < segments.length - 1 && (
-                <mark className={`cli-token ${multipleOccurrences ? 'cli-token-error' : ''}`}>
-                  {PLACEHOLDER}
-                </mark>
-              )}
-            </span>
-          ))}
-          {!hasPlaceholder && value && (
-            <span className="cli-hint"> (no file insertion point)</span>
-          )}
-        </div>
-      )}
       {multipleOccurrences && (
         <p className="error">Only one {PLACEHOLDER} is allowed.</p>
       )}
