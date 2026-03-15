@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { S3Object } from '../types';
-import { listBuckets, listS3Objects } from '../api/s3proxy';
+import { listBuckets, listS3Objects, listAllObjects } from '../api/s3proxy';
 
 interface Props {
   proxyUrl: string;
@@ -13,18 +13,21 @@ interface Props {
 export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAdd }: Props) {
   const [open, setOpen] = useState(false);
 
-  // null = at bucket list, string = inside that bucket
   const [bucket, setBucket] = useState<string | null>(null);
   const [prefix, setPrefix] = useState('');
 
   const [buckets, setBuckets] = useState<string[]>([]);
   const [prefixes, setPrefixes] = useState<string[]>([]);
   const [files, setFiles] = useState<S3Object[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Separate sets for files (keys) and folders (prefixes)
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
-  // Fetch bucket list when modal opens
   useEffect(() => {
     if (!open) return;
     setLoading(true);
@@ -35,7 +38,6 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
       .finally(() => setLoading(false));
   }, [open, proxyUrl, s3Endpoint, accessKey, secretKey]);
 
-  // Fetch objects when inside a bucket
   useEffect(() => {
     if (!open || bucket === null) return;
     setLoading(true);
@@ -52,7 +54,8 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
   function enterBucket(name: string) {
     setBucket(name);
     setPrefix('');
-    setSelected(new Set());
+    setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
     setPrefixes([]);
     setFiles([]);
   }
@@ -60,37 +63,68 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
   function backToBuckets() {
     setBucket(null);
     setPrefix('');
-    setSelected(new Set());
+    setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
   }
 
   function navigate(p: string) {
     setPrefix(p);
-    setSelected(new Set());
   }
 
   function toggleFile(key: string) {
-    setSelected(prev => {
+    setSelectedFiles(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   }
 
-  function handleAdd() {
-    const paths = Array.from(selected).map(key => `${bucket}/${key}`);
-    onAdd(paths);
-    setSelected(new Set());
-    setOpen(false);
+  function toggleFolder(p: string) {
+    setSelectedFolders(prev => {
+      const next = new Set(prev);
+      next.has(p) ? next.delete(p) : next.add(p);
+      return next;
+    });
+  }
+
+  async function handleAdd() {
+    if (!bucket) return;
+    setResolving(true);
+    setError('');
+    try {
+      const paths: string[] = selectedFiles.size > 0
+        ? Array.from(selectedFiles).map(key => `${bucket}/${key}`)
+        : [];
+
+      // Resolve each selected folder recursively
+      for (const folderPrefix of selectedFolders) {
+        const folderPaths = await listAllObjects(
+          proxyUrl, s3Endpoint, accessKey, secretKey, bucket, folderPrefix
+        );
+        paths.push(...folderPaths);
+      }
+
+      onAdd(paths);
+      setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
+      setOpen(false);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setResolving(false);
+    }
   }
 
   function handleClose() {
     setOpen(false);
     setBucket(null);
     setPrefix('');
-    setSelected(new Set());
+    setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
   }
 
   const crumbs = prefix ? prefix.split('/').filter(Boolean) : [];
+  const totalSelected = selectedFiles.size + selectedFolders.size;
 
   if (!open) {
     return (
@@ -108,7 +142,6 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
           <button type="button" className="close-btn" onClick={handleClose}>✕</button>
         </div>
 
-        {/* Breadcrumbs */}
         <div className="breadcrumbs">
           <button type="button" className="crumb" onClick={backToBuckets}>
             buckets
@@ -138,7 +171,6 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
         {error && <p className="error" style={{ padding: '1rem' }}>{error}</p>}
 
         <div className="file-list">
-          {/* Bucket list */}
           {bucket === null && !loading && buckets.map(b => (
             <div key={b} className="file-row folder-row" onClick={() => enterBucket(b)}>
               <span className="file-icon">🪣</span>
@@ -149,21 +181,38 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
             <p className="empty">No buckets found</p>
           )}
 
-          {/* Folder / file list inside a bucket */}
           {bucket !== null && !loading && (
             <>
               {prefixes.map(p => {
                 const folderName = p.slice(prefix.length);
+                const checked = selectedFolders.has(p);
                 return (
-                  <div key={p} className="file-row folder-row" onClick={() => navigate(p)}>
-                    <span className="file-icon">📁</span>
-                    <span>{folderName}</span>
+                  <div
+                    key={p}
+                    className={`file-row folder-row ${checked ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleFolder(p)}
+                      onClick={e => e.stopPropagation()}
+                      title="Select all files in this folder"
+                    />
+                    <span
+                      className="file-icon folder-navigate"
+                      onClick={() => navigate(p)}
+                      title="Open folder"
+                    >📁</span>
+                    <span
+                      className="file-name folder-navigate"
+                      onClick={() => navigate(p)}
+                    >{folderName}</span>
                   </div>
                 );
               })}
               {files.map(f => {
                 const fileName = f.key.slice(prefix.length);
-                const checked = selected.has(f.key);
+                const checked = selectedFiles.has(f.key);
                 return (
                   <div
                     key={f.key}
@@ -190,9 +239,16 @@ export function S3FileBrowser({ proxyUrl, s3Endpoint, accessKey, secretKey, onAd
         </div>
 
         <div className="modal-footer">
-          <span>{selected.size} file{selected.size !== 1 ? 's' : ''} selected</span>
-          <button type="button" onClick={handleAdd} disabled={selected.size === 0}>
-            Add to job
+          <span>
+            {totalSelected === 0
+              ? 'Nothing selected'
+              : [
+                  selectedFiles.size > 0 && `${selectedFiles.size} file${selectedFiles.size !== 1 ? 's' : ''}`,
+                  selectedFolders.size > 0 && `${selectedFolders.size} folder${selectedFolders.size !== 1 ? 's' : ''}`,
+                ].filter(Boolean).join(', ') + ' selected'}
+          </span>
+          <button type="button" onClick={handleAdd} disabled={totalSelected === 0 || resolving}>
+            {resolving ? 'Resolving…' : 'Add to job'}
           </button>
         </div>
       </div>

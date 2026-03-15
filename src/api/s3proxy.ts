@@ -29,6 +29,22 @@ export async function listBuckets(
   return data.buckets ?? [];
 }
 
+export async function listAllObjects(
+  proxyUrl: string,
+  endpoint: string,
+  accessKey: string,
+  secretKey: string,
+  bucket: string,
+  prefix: string,
+): Promise<string[]> {
+  const params = new URLSearchParams({ endpoint, bucket, prefix });
+  const res = await fetch(`${proxyUrl}/api/s3/list-all?${params}`, {
+    headers: s3Headers(accessKey, secretKey),
+  });
+  const data = await checkS3Response(res);
+  return (data.files as { key: string }[]).map(f => `${bucket}/${f.key}`);
+}
+
 export async function listS3Objects(
   proxyUrl: string,
   endpoint: string,

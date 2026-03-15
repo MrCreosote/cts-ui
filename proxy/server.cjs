@@ -77,6 +77,48 @@ app.get('/api/s3/buckets', async (req, res) => {
   }
 });
 
+app.get('/api/s3/list-all', async (req, res) => {
+  const { endpoint, bucket, prefix = '' } = req.query;
+  const accessKey = req.headers['x-s3-access-key'];
+  const secretKey = req.headers['x-s3-secret-key'];
+
+  if (!endpoint || !bucket || !accessKey || !secretKey) {
+    return res.status(400).json({
+      error: 'Missing required parameters: endpoint, bucket (query) and x-s3-access-key, x-s3-secret-key (headers)',
+    });
+  }
+
+  try {
+    const client = makeS3Client(endpoint, accessKey, secretKey);
+    const files = [];
+    let continuationToken;
+
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      });
+      const response = await client.send(command);
+      for (const obj of response.Contents || []) {
+        if (obj.Key && obj.Key !== prefix) {
+          files.push({
+            key: obj.Key,
+            size: obj.Size ?? 0,
+            lastModified: obj.LastModified ? obj.LastModified.toISOString() : '',
+          });
+        }
+      }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    res.json({ files });
+  } catch (err) {
+    console.error('S3 list-all error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/s3/list', async (req, res) => {
   const { endpoint, bucket, prefix = '' } = req.query;
   const accessKey = req.headers['x-s3-access-key'];
