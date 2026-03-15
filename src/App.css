@@ -353,6 +353,31 @@ mark.cli-token-error {
 .success { color: #198754; font-size: 0.85rem; font-weight: 600; }
 .usage-notes { font-size: 0.78rem; color: #555; font-style: italic; }
 
+.site-info {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+
+.site-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: #333;
+}
+
+.site-notes {
+  margin: 0.4rem 0 0 1rem;
+  color: #555;
+  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

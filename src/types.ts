@@ -27,9 +27,15 @@ export interface Image {
 }
 
 export interface Site {
-  name: string;
+  cluster: string;
   active: boolean;
   available: boolean;
+  unavailable_reason: string | null;
+  nodes: number | null;
+  cpus_per_node: number;
+  memory_per_node_gb: number;
+  max_runtime_min: number;
+  notes: string[];
 }
 
 export interface S3Object {

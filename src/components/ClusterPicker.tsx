@@ -29,8 +29,10 @@ export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Pro
 
   const usable = sites.filter(s => s.active && s.available);
   const unusable = sites.filter(s => !s.active || !s.available);
+  const selected = sites.find(s => s.cluster === value) ?? null;
 
   function unusableReason(s: Site) {
+    if (s.unavailable_reason) return s.unavailable_reason;
     if (!s.active && !s.available) return 'inactive, unavailable';
     if (!s.active) return 'inactive';
     return 'unavailable';
@@ -51,18 +53,40 @@ export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Pro
       >
         <option value="">-- select a cluster --</option>
         {usable.map(s => (
-          <option key={s.name} value={s.name}>{s.name}</option>
+          <option key={s.cluster} value={s.cluster}>{s.cluster}</option>
         ))}
         {unusable.length > 0 && (
           <optgroup label="Unavailable">
             {unusable.map(s => (
-              <option key={s.name} value={s.name} disabled>
-                {s.name} ({unusableReason(s)})
+              <option key={s.cluster} value={s.cluster} disabled>
+                {s.cluster} ({unusableReason(s)})
               </option>
             ))}
           </optgroup>
         )}
       </select>
+
+      {selected && (
+        <div className="site-info">
+          <div className="site-info-row">
+            {selected.nodes !== null && <span><strong>Nodes:</strong> {selected.nodes}</span>}
+            <span><strong>CPUs/node:</strong> {selected.cpus_per_node}</span>
+            <span><strong>Memory/node:</strong> {selected.memory_per_node_gb} GB</span>
+            <span><strong>Max runtime:</strong> {formatRuntime(selected.max_runtime_min)}</span>
+          </div>
+          {selected.notes.length > 0 && (
+            <ul className="site-notes">
+              {selected.notes.map((n, i) => <li key={i}>{n}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+function formatRuntime(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }

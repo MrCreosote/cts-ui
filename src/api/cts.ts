@@ -29,7 +29,7 @@ export async function fetchImages(proxyUrl: string, baseUrl: string, token: stri
 export async function fetchSites(proxyUrl: string, baseUrl: string, token: string): Promise<Site[]> {
   const res = await fetch(ctsUrl(proxyUrl, '/sites'), { headers: headers(token, baseUrl) });
   const data = await checkResponse(res);
-  return data.data ?? [];
+  return data.sites ?? [];
 }
 
 export async function submitJob(proxyUrl: string, baseUrl: string, token: string, job: JobSubmission) {
