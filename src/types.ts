@@ -22,6 +22,7 @@ export interface Image {
   tag: string | null;
   entrypoint: string[];
   usage_notes: string | null;
+  urls: string[] | null;
   registered_by: string;
   registered_on: string;
 }

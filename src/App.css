@@ -353,6 +353,62 @@ mark.cli-token-error {
 .success { color: #198754; font-size: 0.85rem; font-weight: 600; }
 .usage-notes { font-size: 0.78rem; color: #555; font-style: italic; }
 
+.image-detail {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.image-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.image-detail code {
+  background: #e9ecef;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+code.digest {
+  word-break: break-all;
+  font-size: 0.72rem;
+  color: #555;
+}
+
+.image-urls {
+  list-style: none;
+  margin: 0.15rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.image-urls a {
+  color: #0d6efd;
+  text-decoration: none;
+  word-break: break-all;
+  font-size: 0.8rem;
+}
+.image-urls a:hover { text-decoration: underline; }
+
+.image-usage-notes {
+  margin: 0.15rem 0 0 0;
+  color: #444;
+  white-space: pre-wrap;
+  max-height: 8rem;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
 .site-info {
   margin-top: 0.4rem;
   padding: 0.5rem 0.75rem;

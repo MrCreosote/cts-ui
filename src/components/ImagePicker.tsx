@@ -23,7 +23,7 @@ export function ImagePicker({ proxyUrl, baseUrl, token, value, onChange }: Props
       .then(setImages)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [baseUrl, token]);
+  }, [proxyUrl, baseUrl, token]);
 
   const selectedUri = value ? `${value.name}@${value.digest}` : '';
 
@@ -49,9 +49,56 @@ export function ImagePicker({ proxyUrl, baseUrl, token, value, onChange }: Props
           return <option key={uri} value={uri}>{label}</option>;
         })}
       </select>
-      {value?.usage_notes && (
-        <p className="usage-notes">{value.usage_notes}</p>
+
+      {value && <ImageDetail image={value} />}
+    </div>
+  );
+}
+
+function ImageDetail({ image }: { image: Image }) {
+  return (
+    <div className="image-detail">
+      <div className="image-detail-row">
+        <span><strong>Entrypoint:</strong> <code>{image.entrypoint.join(' ')}</code></span>
+      </div>
+
+      <div className="image-detail-row">
+        <span><strong>Digest:</strong> <code className="digest">{image.digest}</code></span>
+      </div>
+
+      <div className="image-detail-row">
+        <span>
+          <strong>Registered</strong> {formatDate(image.registered_on)} by {image.registered_by}
+        </span>
+      </div>
+
+      {image.urls && image.urls.length > 0 && (
+        <div className="image-detail-row">
+          <strong>Links:</strong>
+          <ul className="image-urls">
+            {image.urls.map(url => (
+              <li key={url}>
+                <a href={url} target="_blank" rel="noreferrer">{url}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {image.usage_notes && (
+        <div className="image-detail-row">
+          <strong>Usage notes:</strong>
+          <p className="image-usage-notes">{image.usage_notes}</p>
+        </div>
       )}
     </div>
   );
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch {
+    return iso;
+  }
 }
