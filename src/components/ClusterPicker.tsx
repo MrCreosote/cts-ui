@@ -11,76 +11,101 @@ interface Props {
 }
 
 export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Props) {
+  const [open, setOpen] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!proxyUrl || !baseUrl || !token) return;
+    if (!open || !token || !baseUrl) return;
     setLoading(true);
-    setLoaded(false);
     setError('');
     fetchSites(proxyUrl, baseUrl, token)
       .then(setSites)
       .catch(e => setError(e.message))
-      .finally(() => { setLoading(false); setLoaded(true); });
-  }, [proxyUrl, baseUrl, token]);
+      .finally(() => setLoading(false));
+  }, [open, proxyUrl, baseUrl, token]);
 
-  const usable = sites.filter(s => s.active && s.available);
-  const unusable = sites.filter(s => !s.active || !s.available);
-  const selected = sites.find(s => s.cluster === value) ?? null;
+  const selectedSite = sites.find(s => s.cluster === value) ?? null;
 
-  function unusableReason(s: Site) {
-    if (s.unavailable_reason) return s.unavailable_reason;
-    if (!s.active && !s.available) return 'inactive, unavailable';
-    if (!s.active) return 'inactive';
-    return 'unavailable';
+  function select(site: Site) {
+    onChange(site.cluster);
+    setOpen(false);
   }
 
   return (
     <div className="field">
       <label>Cluster</label>
-      {loading && <span className="loading">Loading clusters…</span>}
-      {error && <span className="error">{error}</span>}
-      {loaded && sites.length === 0 && !error && (
-        <span className="error">No clusters returned from /sites</span>
-      )}
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        disabled={loading}
-      >
-        <option value="">-- select a cluster --</option>
-        {usable.map(s => (
-          <option key={s.cluster} value={s.cluster}>{s.cluster}</option>
-        ))}
-        {unusable.length > 0 && (
-          <optgroup label="Unavailable">
-            {unusable.map(s => (
-              <option key={s.cluster} value={s.cluster} disabled>
-                {s.cluster} ({unusableReason(s)})
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
 
-      {selected && (
-        <div className="site-info">
-          <div className="site-info-row">
-            {selected.nodes !== null && <span><strong>Nodes:</strong> {selected.nodes}</span>}
-            <span><strong>CPUs/node:</strong> {selected.cpus_per_node}</span>
-            <span><strong>Memory/node:</strong> {selected.memory_per_node_gb} GB</span>
-            <span><strong>Max runtime:</strong> {formatRuntime(selected.max_runtime_min)}</span>
+      {value ? (
+        <div className="selected-card">
+          <div className="selected-card-header">
+            <span className="selected-card-title">{value}</span>
+            <button type="button" className="change-btn" onClick={() => setOpen(true)}>Change…</button>
           </div>
-          {selected.notes.length > 0 && (
-            <ul className="site-notes">
-              {selected.notes.map((n, i) => <li key={i}>{n}</li>)}
-            </ul>
-          )}
+          {selectedSite && <SiteSummary site={selectedSite} />}
+        </div>
+      ) : (
+        <button type="button" className="pick-btn" onClick={() => setOpen(true)}>Select Cluster…</button>
+      )}
+
+      {open && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setOpen(false)}>
+          <div className="modal picker-modal">
+            <div className="modal-header">
+              <span>Select Cluster</span>
+              <button type="button" className="close-btn" onClick={() => setOpen(false)}>✕</button>
+            </div>
+
+            {loading && <p className="loading" style={{ padding: '1rem' }}>Loading…</p>}
+            {error && <p className="error" style={{ padding: '1rem' }}>{error}</p>}
+
+            <div className="picker-list">
+              {sites.map(site => {
+                const usable = site.active && site.available;
+                const reason = site.unavailable_reason
+                  ?? (!site.active && !site.available ? 'inactive & unavailable'
+                    : !site.active ? 'inactive'
+                    : 'unavailable');
+                return (
+                  <div
+                    key={site.cluster}
+                    className={`picker-card ${!usable ? 'picker-card-disabled' : ''} ${value === site.cluster ? 'picker-card-selected' : ''}`}
+                    onClick={() => usable && select(site)}
+                  >
+                    <div className="picker-card-title">
+                      {site.cluster}
+                      {!usable && (
+                        <span className="disallowed-tag" style={{ marginLeft: '0.5rem' }}>{reason}</span>
+                      )}
+                    </div>
+                    <SiteSummary site={site} />
+                    {site.notes.length > 0 && (
+                      <ul className="picker-site-notes">
+                        {site.notes.map((n, i) => <li key={i}>{n}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+              {!loading && sites.length === 0 && !error && (
+                <p className="empty">No clusters returned</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SiteSummary({ site }: { site: Site }) {
+  return (
+    <div className="picker-site-summary">
+      {site.nodes !== null && <span>{site.nodes} nodes</span>}
+      <span>{site.cpus_per_node} CPU{site.cpus_per_node !== 1 ? 's' : ''}/node</span>
+      <span>{site.memory_per_node_gb} GB/node</span>
+      <span>Max {formatRuntime(site.max_runtime_min)}</span>
     </div>
   );
 }
@@ -88,5 +113,7 @@ export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Pro
 function formatRuntime(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
 }
