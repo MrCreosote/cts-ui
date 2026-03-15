@@ -82,7 +82,7 @@ export interface JobSubmission {
   params: {
     input_mount_point: string;
     output_mount_point: string;
-    cli_arguments: CliArgument[] | null;
+    args: CliArgument[] | null;
   };
   num_containers: number;
   cpus: number;

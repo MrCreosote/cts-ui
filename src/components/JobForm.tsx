@@ -97,7 +97,7 @@ export function JobForm({ credentials }: Props) {
       params: {
         input_mount_point: inputMountPoint,
         output_mount_point: outputMountPoint,
-        cli_arguments: cliArgs.length > 0 ? cliArgs : null,
+        args: cliArgs.length > 0 ? cliArgs : null,
       },
       num_containers: resources.numContainers,
       cpus: resources.cpus,
