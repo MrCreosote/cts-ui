@@ -1,4 +1,4 @@
-import type { S3ListResult } from '../types';
+import type { S3FileEntry, S3ListResult } from '../types';
 
 function s3Headers(accessKey: string, secretKey: string) {
   return {
@@ -29,6 +29,22 @@ export async function listBuckets(
   return data.buckets ?? [];
 }
 
+export async function checkObjectChecksum(
+  proxyUrl: string,
+  endpoint: string,
+  accessKey: string,
+  secretKey: string,
+  bucket: string,
+  key: string,
+): Promise<boolean> {
+  const params = new URLSearchParams({ endpoint, bucket, key });
+  const res = await fetch(`${proxyUrl}/api/s3/checksum?${params}`, {
+    headers: s3Headers(accessKey, secretKey),
+  });
+  const data = await checkS3Response(res);
+  return data.hasCrc64nvme as boolean;
+}
+
 export async function listAllObjects(
   proxyUrl: string,
   endpoint: string,
@@ -36,13 +52,16 @@ export async function listAllObjects(
   secretKey: string,
   bucket: string,
   prefix: string,
-): Promise<string[]> {
+): Promise<S3FileEntry[]> {
   const params = new URLSearchParams({ endpoint, bucket, prefix });
   const res = await fetch(`${proxyUrl}/api/s3/list-all?${params}`, {
     headers: s3Headers(accessKey, secretKey),
   });
   const data = await checkS3Response(res);
-  return (data.files as { key: string }[]).map(f => `${bucket}/${f.key}`);
+  return (data.files as { key: string; checksumAlgorithms: string[] }[]).map(f => ({
+    path: `${bucket}/${f.key}`,
+    hasCrc64nvme: (f.checksumAlgorithms ?? []).includes('CRC64NVME'),
+  }));
 }
 
 export async function listS3Objects(

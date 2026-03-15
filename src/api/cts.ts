@@ -1,4 +1,4 @@
-import type { Image, Site, JobSubmission } from '../types';
+import type { Image, Site, WhoamiResult, JobSubmission } from '../types';
 
 function ctsUrl(proxyUrl: string, path: string) {
   return `${proxyUrl}/api/cts${path}`;
@@ -30,6 +30,11 @@ export async function fetchSites(proxyUrl: string, baseUrl: string, token: strin
   const res = await fetch(ctsUrl(proxyUrl, '/sites'), { headers: headers(token, baseUrl) });
   const data = await checkResponse(res);
   return data.sites ?? [];
+}
+
+export async function fetchWhoami(proxyUrl: string, baseUrl: string, token: string): Promise<WhoamiResult> {
+  const res = await fetch(ctsUrl(proxyUrl, '/whoami'), { headers: headers(token, baseUrl) });
+  return checkResponse(res);
 }
 
 export async function submitJob(proxyUrl: string, baseUrl: string, token: string, job: JobSubmission) {

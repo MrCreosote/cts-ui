@@ -39,10 +39,29 @@ export interface Site {
   notes: string[];
 }
 
+export interface AllowedPath {
+  path: string;  // "bucket/prefix/" format
+  perm: string;  // e.g. "write"
+}
+
+export interface WhoamiResult {
+  user: string;
+  roles: string[];
+  allowed_paths: AllowedPath[];
+}
+
+export type ChecksumStatus = 'checking' | 'ok' | 'missing' | 'error';
+
 export interface S3Object {
   key: string;
   size: number;
   lastModified: string;
+  checksumAlgorithms: string[];
+}
+
+export interface S3FileEntry {
+  path: string;       // bucket/key
+  hasCrc64nvme: boolean;
 }
 
 export interface S3ListResult {

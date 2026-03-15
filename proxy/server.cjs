@@ -24,7 +24,7 @@ const https = require('https');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
-const { S3Client, ListBucketsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, ListBucketsCommand, ListObjectsV2Command, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { NodeHttpHandler } = require('@smithy/node-http-handler');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 
@@ -77,6 +77,29 @@ app.get('/api/s3/buckets', async (req, res) => {
   }
 });
 
+app.get('/api/s3/checksum', async (req, res) => {
+  const { endpoint, bucket, key } = req.query;
+  const accessKey = req.headers['x-s3-access-key'];
+  const secretKey = req.headers['x-s3-secret-key'];
+
+  if (!endpoint || !bucket || !key || !accessKey || !secretKey) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  try {
+    const client = makeS3Client(endpoint, accessKey, secretKey);
+    const response = await client.send(new HeadObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ChecksumMode: 'ENABLED',
+    }));
+    res.json({ hasCrc64nvme: !!response.ChecksumCRC64NVME });
+  } catch (err) {
+    console.error('S3 checksum error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/s3/list-all', async (req, res) => {
   const { endpoint, bucket, prefix = '' } = req.query;
   const accessKey = req.headers['x-s3-access-key'];
@@ -106,6 +129,7 @@ app.get('/api/s3/list-all', async (req, res) => {
             key: obj.Key,
             size: obj.Size ?? 0,
             lastModified: obj.LastModified ? obj.LastModified.toISOString() : '',
+            checksumAlgorithms: obj.ChecksumAlgorithm ?? [],
           });
         }
       }
@@ -147,6 +171,7 @@ app.get('/api/s3/list', async (req, res) => {
           key: f.Key,
           size: f.Size ?? 0,
           lastModified: f.LastModified ? f.LastModified.toISOString() : '',
+          checksumAlgorithms: f.ChecksumAlgorithm ?? [],
         })),
     });
   } catch (err) {
