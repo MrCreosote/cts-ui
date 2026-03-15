@@ -1,5 +1,34 @@
 import type { S3ListResult } from '../types';
 
+function s3Headers(accessKey: string, secretKey: string) {
+  return {
+    'x-s3-access-key': accessKey,
+    'x-s3-secret-key': secretKey,
+  };
+}
+
+async function checkS3Response(res: Response) {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? res.statusText);
+  }
+  return res.json();
+}
+
+export async function listBuckets(
+  proxyUrl: string,
+  endpoint: string,
+  accessKey: string,
+  secretKey: string,
+): Promise<string[]> {
+  const params = new URLSearchParams({ endpoint });
+  const res = await fetch(`${proxyUrl}/api/s3/buckets?${params}`, {
+    headers: s3Headers(accessKey, secretKey),
+  });
+  const data = await checkS3Response(res);
+  return data.buckets ?? [];
+}
+
 export async function listS3Objects(
   proxyUrl: string,
   endpoint: string,
@@ -10,14 +39,7 @@ export async function listS3Objects(
 ): Promise<S3ListResult> {
   const params = new URLSearchParams({ endpoint, bucket, prefix });
   const res = await fetch(`${proxyUrl}/api/s3/list?${params}`, {
-    headers: {
-      'x-s3-access-key': accessKey,
-      'x-s3-secret-key': secretKey,
-    },
+    headers: s3Headers(accessKey, secretKey),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error ?? res.statusText);
-  }
-  return res.json();
+  return checkS3Response(res);
 }

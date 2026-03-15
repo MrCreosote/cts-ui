@@ -63,11 +63,8 @@ export function CommandLineInput({ value, onChange, entrypoint, inputMountPoint,
         Insert files at cursor
       </button>
 
-      {(value || (entrypoint && entrypoint.length > 0)) && (
+      {value && (
         <div className="cli-preview" aria-label="Command preview">
-          {entrypoint && entrypoint.length > 0 && (
-            <span className="cli-entrypoint">{entrypoint.join(' ')}{value ? ' ' : ''}</span>
-          )}
           {segments.map((seg, i) => (
             <span key={i}>
               <span className="cli-literal">{seg}</span>

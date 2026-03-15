@@ -14,16 +14,18 @@ export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Pro
   const [sites, setSites] = useState<Site[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!proxyUrl || !baseUrl || !token) return;
     setLoading(true);
+    setLoaded(false);
     setError('');
     fetchSites(proxyUrl, baseUrl, token)
       .then(setSites)
       .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [baseUrl, token]);
+      .finally(() => { setLoading(false); setLoaded(true); });
+  }, [proxyUrl, baseUrl, token]);
 
   const usable = sites.filter(s => s.active && s.available);
   const unusable = sites.filter(s => !s.active || !s.available);
@@ -39,10 +41,13 @@ export function ClusterPicker({ proxyUrl, baseUrl, token, value, onChange }: Pro
       <label>Cluster</label>
       {loading && <span className="loading">Loading clusters…</span>}
       {error && <span className="error">{error}</span>}
+      {loaded && sites.length === 0 && !error && (
+        <span className="error">No clusters returned from /sites</span>
+      )}
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        disabled={loading || sites.length === 0}
+        disabled={loading}
       >
         <option value="">-- select a cluster --</option>
         {usable.map(s => (

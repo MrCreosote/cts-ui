@@ -24,7 +24,7 @@ const https = require('https');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
-const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, ListBucketsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { NodeHttpHandler } = require('@smithy/node-http-handler');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 
@@ -53,6 +53,29 @@ function makeS3Client(endpoint, accessKeyId, secretAccessKey) {
     }),
   });
 }
+
+app.get('/api/s3/buckets', async (req, res) => {
+  const { endpoint } = req.query;
+  const accessKey = req.headers['x-s3-access-key'];
+  const secretKey = req.headers['x-s3-secret-key'];
+
+  if (!endpoint || !accessKey || !secretKey) {
+    return res.status(400).json({
+      error: 'Missing required parameters: endpoint (query) and x-s3-access-key, x-s3-secret-key (headers)',
+    });
+  }
+
+  try {
+    const client = makeS3Client(endpoint, accessKey, secretKey);
+    const response = await client.send(new ListBucketsCommand({}));
+    res.json({
+      buckets: (response.Buckets || []).map(b => b.Name).filter(Boolean),
+    });
+  } catch (err) {
+    console.error('S3 buckets error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/s3/list', async (req, res) => {
   const { endpoint, bucket, prefix = '' } = req.query;
