@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import type { Credentials } from '../types';
+import { DEFAULT_CREDENTIALS } from '../types';
 
 interface Props {
   credentials: Credentials;
   onChange: (c: Credentials) => void;
+  onReset: () => void;
 }
 
-export function CredentialsPanel({ credentials, onChange }: Props) {
+export function CredentialsPanel({ credentials, onChange, onReset }: Props) {
   const [open, setOpen] = useState(!credentials.kbaseToken);
   // Local draft — only committed to parent on Save
   const [draft, setDraft] = useState<Credentials>(credentials);
@@ -50,6 +52,12 @@ export function CredentialsPanel({ credentials, onChange }: Props) {
             {field('Proxy URL (local dev)', 'proxyUrl')}
           </div>
           <div className="credentials-footer">
+            <button type="button" className="reset-btn" onClick={() => {
+              onReset();
+              setDraft(DEFAULT_CREDENTIALS);
+            }}>
+              Reset to defaults
+            </button>
             <button type="button" className="save-btn" onClick={save}>
               Save &amp; Connect
             </button>

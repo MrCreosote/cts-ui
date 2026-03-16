@@ -4,7 +4,7 @@ import { JobForm } from './components/JobForm';
 import './App.css';
 
 export default function App() {
-  const { credentials, setCredentials } = useCredentials();
+  const { credentials, setCredentials, resetCredentials } = useCredentials();
 
   return (
     <div className="app">
@@ -20,7 +20,7 @@ export default function App() {
         </a>
       </header>
       <main>
-        <CredentialsPanel credentials={credentials} onChange={setCredentials} />
+        <CredentialsPanel credentials={credentials} onChange={setCredentials} onReset={resetCredentials} />
         <JobForm credentials={credentials} />
       </main>
     </div>

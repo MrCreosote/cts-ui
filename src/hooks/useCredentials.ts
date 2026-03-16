@@ -19,5 +19,10 @@ export function useCredentials() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
   }, [credentials]);
 
-  return { credentials, setCredentials };
+  function resetCredentials() {
+    localStorage.removeItem(STORAGE_KEY);
+    setCredentials(DEFAULT_CREDENTIALS);
+  }
+
+  return { credentials, setCredentials, resetCredentials };
 }
